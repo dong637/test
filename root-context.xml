@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans https://www.springframework.org/schema/beans/spring-beans.xsd">
+
+	<bean id="dataSource" class="org.apache.commons.dbcp.BasicDataSource" destroy-method="close">
+		<property name="driverClassName" value="oracle.jdbc.driver.OracleDriver" />
+		<property name="url" value="jdbc:oracle:thin:@192.168.0.5:1521:XE" /> <!-- 호스트, ip, 아이디, PW 입력 -->
+		<property name="username" value="giantstudy" />
+		<property name="password" value="gs123" />
+	</bean>
+
+	<bean id="sqlSession" class="org.mybatis.spring.SqlSessionFactoryBean">
+		<property name="dataSource" ref="dataSource" />
+		<property name="mapperLocations" value="classpath:/mapper/*.xml" /> <!-- value값 변경 -->
+	</bean>
+	<bean id="sqlSessionTemplate" class="org.mybatis.spring.SqlSessionTemplate">
+		<constructor-arg index="0" ref="sqlSession" />
+	</bean>
+	
+	<bean id="multipartResolver" class="org.springframework.web.multipart.commons.CommonsMultipartResolver">
+        <property name="maxUploadSize" value="100000000" />
+        <property name="maxInMemorySize" value="100000000" />
+        <property name="defaultEncoding" value="UTF-8" />
+    </bean>
+    
+    	<!-- 파일업로드 디렉토리. 업로드 양이 많아지면 실직적으로는 잘 쓰지 않고 텍슽 따로 빼서 씀 -->
+<!-- 	<bean id = "uploadPath" class="java.lang.String">
+		<constructor-arg value="C:\Users\hdong\Desktop\test">
+		</constructor-arg>
+	</bean> -->
+
+</beans>

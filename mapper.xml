@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="mapper">
+
+	<resultMap type="map" id="mapList">
+		<result column="seq" property="seq" />
+		<result column="mem_id" property="memId" /> <!-- 컬럼인 애를 프로퍼티로 쓰겠다는 말임 -->
+		<result column="mem_name" property="memName" /> <!-- 리저트로 설정 안하면 sql문 쓸 때 다 대문자로  -->
+		<result column="board_subject" property="boardSubject" />
+		<result column="board_content" property="boardContent" />
+		<result column="reg_date" property="regDate" />
+		<result column="upt_date" property="uptDate" />
+		<result column="view_cnt" property="viewCnt" />
+	</resultMap>
+
+	<select id="list" parameterType="map" resultMap="mapList"> <!-- 리스트 보기, 검색 -->
+	<!-- rnum과 total를 새로 만들어 넣어줬기 때문에 활용하려면 괄호로 서브쿼리로 이용함. -->
+		select
+			total
+			,rnum
+			,seq
+			,mem_id
+			,mem_name
+			,board_subject
+			,board_content
+			,reg_date
+			,upt_date
+			,view_cnt
+		from
+			(select
+				count(*) over() total
+				,row_number() over(order by seq desc) rnum
+				,seq
+				,mem_id
+				,mem_name
+				,board_subject
+				,board_content
+				,reg_date
+				,upt_date
+				,view_cnt
+			from board_study
+			where 1=1
+				<choose>
+					<when test="searchOption=='name'"> <!-- 작성자로 검색 . #{search}은 name값-->
+						and mem_name like '%'||#{search}||'%'
+					</when>
+					<when test="searchOption=='subject'"> <!-- 제목으로 검색 -->
+						and board_subject like '%'||#{search}||'%'
+					</when>
+					<when test="searchOption=='content'"> <!-- 제목+내용으로 검색 -->
+						and (board_subject like '%'||#{search}||'%' or
+							board_content like '%'||#{search}||'%')
+					</when>
+				</choose>
+				<if test="dateFrom != null and dateFrom != ''"><!-- when에서 된 것도 하고, if도 하고 -->
+						and to_Char(reg_date, 'yyyy-mm-dd') between #{dateFrom} and #{dateTo}
+				</if> <!-- to_Char를 써서 문자형식으로 바꿔줘야 함. -->
+			) where rnum between #{pageNo} * #{listSize} - #{listSize} + 1 and #{pageNo} * #{listSize} <!-- 컨트롤러 초기 변수와 동일하게 -->
+	</select>
+
+	<insert id="insertList" parameterType="map">
+		insert into
+		board_study(
+			seq
+			,mem_id
+			,mem_name
+			,board_subject
+			,board_content
+			,reg_date
+			,view_cnt)
+		values(
+			(select nvl(max(seq),0)+1 from board_study) <!-- null이면 최대값을 0으로 하고 1을 더함. null이 아니면 최대값에 1을 더함 -->
+			, #{memId}
+			, #{memName}
+			, #{boardSubject}
+			, #{boardContent}
+			, sysdate
+			,0
+		)
+	</insert>
+	
+	<select id="read" parameterType="Integer" resultMap="mapList"> <!-- * 대신 컬럼 값을 하나씩 써도 됨. (list처럼) -->
+			select * from board_study
+			where seq = #{seq}
+	</select>
+	
+	<update id="update" parameterType="map"> <!-- 아이디, 이름 등 여러개 넘겨줘야 하므로  map. seq만 하면 Integer -->
+			update board_study
+			set
+				mem_id = #{memId}
+				, mem_name = #{memName}
+				, board_subject = #{boardSubject}
+				, board_content = #{boardContent}
+				, upt_date = sysdate
+			where seq = #{seq}
+	</update>
+	
+	<delete id="delete" parameterType="Integer">
+			delete from board_study
+			where seq in
+				<foreach collection="list" item="chk" open="(" separator="," close=")"> <!-- item에는 controller 변수명이 들어간다고 생각하면 됨. -->
+	        		#{chk}
+	     		</foreach>
+	</delete>
+	
+</mapper>
